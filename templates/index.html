@@ -1,0 +1,89 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>Matija Krolo - Sezzle Coding Challenge</title>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+  <script>
+  	// Store a local DS for the responses made from the backend
+  	let local_ds = []
+  	// Use regex for checking proper mathematical expressions 
+	$(document).ready(function(){
+		// Connect to websocket
+	    var socket = io.connect('https://' + document.domain + ':' + location.port + '/calculator', {transports: ['websocket']});
+	    // Event handling for user input
+	   	$("#crunch_numbers").click(function(){
+	   		let user_input = null;
+	   		try{ 
+	   			user_input = $("#calculation").val();
+	   			let answer = eval(user_input); 
+	   			// Send to backend
+	   			socket.emit('to_calculate', {expression: user_input, result: answer});
+	   		}catch{
+	   			// If an eval fails, let the user know
+	   			alert(`${user_input} is not a proper mathematical expression`);
+	   		}
+	   	})
+	   	// Event handling (broadcast all new events to clients)
+	   	socket.on('fill_calculations', function(data){
+	   		// Push to front of our array
+	   		local_ds.unshift(data);
+	   		// Remove the top of stack (oldest event) if there are more than 10
+	   		if(local_ds.length > 10){ 
+	   			local_ds.pop()
+	   		}
+	   		// Rebuild the table
+	   		$("#history").empty()
+	   		for(item in local_ds){
+	   			// Convert Unix time
+	   			var time = new Date(local_ds[item].time * 1000).toLocaleTimeString("en-US") 
+	   			$("#history").append(`
+	   				<tr>
+	   				<th>${local_ds[item].expression}</th>
+	   				<th>${local_ds[item].answer}</th>
+	   				<th>${time}</th>
+	   				</tr>`);
+	   		}
+	   	})
+	});
+  </script>
+</head>
+<body>
+<h1 class="text-center mt-3 mb-3">Matija Krolo's Calculator for Sezzle</h1>
+<h2 class="text-center mt-3 mb-3">Now with websockets!</h2>
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-6">
+		<form>
+			<div class="row">
+				<label>Please enter your calculation: <input type="text" id="calculation"></label>
+				<input type="button" value="Crunch Numbers" id="crunch_numbers">
+			</div>
+			<div class="row justify-content-center">
+				Valid operators include +, -, /, *, and **.
+			</div>
+			<div class="row justify-content-center">
+				You can concatonate large expressions (3+4-2*3)
+			</div>
+		</form>
+	</div>
+</div>
+</div>
+<h2>Calculation History (last 10)</h2>
+<table class="table table-striped">
+	<thead>
+	  <tr>
+	    <th>Expression</th>
+	    <th>Answer</th>
+	    <th>Time Submitted</th> 
+	  </tr>
+	</thead>
+	<tbody id="history">
+	</tbody>
+</table>
+</body>
+</html>
