@@ -5,5 +5,7 @@ broadcast to all clients.
 Stack
 _________
 Backend: Flask with Websockets, most recent calculations are stored in memory
+
+
 Frontend: Bootstrap, jQuery, Socket.IO
 
